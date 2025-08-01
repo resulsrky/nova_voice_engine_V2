@@ -24,6 +24,17 @@ std::shared_ptr<AudioPlayer> g_audioPlayer;
 void signalHandler(int signal) {
     std::cout << "\nÇıkış sinyali alındı (" << signal << "). Program sonlandırılıyor..." << std::endl;
     g_running = false;
+    
+    // Hızlı kapatma için sistemleri zorla durdur
+    if (g_audioCapture) {
+        g_audioCapture->stop();
+    }
+    if (g_audioPlayer) {
+        g_audioPlayer->stop();
+    }
+    if (g_udpManager) {
+        g_udpManager->stop();
+    }
 }
 
 // Yardım mesajı
@@ -146,7 +157,10 @@ void shutdownSystem() {
 // İstatistikleri yazdır
 void printStatistics() {
     while (g_running) {
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        // 5 saniye bekle ama her 100ms'de g_running kontrol et
+        for (int i = 0; i < 50 && g_running; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
         
         if (!g_running) break;
         
@@ -159,9 +173,20 @@ void printStatistics() {
         }
         
         if (g_udpManager) {
-            std::cout << "Network - Sent: " << g_udpManager->getSentPackets()
-                     << ", Received: " << g_udpManager->getReceivedPackets()
-                     << ", Failed: " << g_udpManager->getFailedSends() << std::endl;
+            auto sent = g_udpManager->getSentPackets();
+            auto received = g_udpManager->getReceivedPackets();
+            auto failed = g_udpManager->getFailedSends();
+            
+            std::cout << "Network - Sent: " << sent
+                     << ", Received: " << received
+                     << ", Failed: " << failed;
+            
+            // Ses akışı durumu
+            if (sent > 0) std::cout << " 📤";
+            if (received > 0) std::cout << " 📥";
+            if (failed > 0) std::cout << " ❌";
+            
+            std::cout << std::endl;
         }
         
         if (g_audioCapture) {
@@ -289,6 +314,15 @@ int main(int argc, char* argv[]) {
         std::cout << "   📥 Dinleme: Port " << localPort << " (gelen sesler)" << std::endl;
         std::cout << "   📤 Gönderim: " << remoteIP << ":" << remotePort << " (giden sesler)" << std::endl;
         
+        // Network erişilebilirlik kontrolü
+        std::cout << "🔍 Network erişilebilirlik kontrol ediliyor..." << std::endl;
+        std::string pingCmd = "ping -c 1 -W 2 " + remoteIP + " > /dev/null 2>&1";
+        if (system(pingCmd.c_str()) == 0) {
+            std::cout << "✅ " << remoteIP << " erişilebilir" << std::endl;
+        } else {
+            std::cout << "⚠️  " << remoteIP << " ping yanıt vermiyor - firewall olabilir" << std::endl;
+        }
+        
         // Server olarak başlat (kendi portumuzda dinle)
         networkOk = g_udpManager->startServer(localPort);
         if (networkOk) {
@@ -325,9 +359,9 @@ int main(int argc, char* argv[]) {
     // İstatistik thread'i başlat
     std::thread statsThread(printStatistics);
     
-    // Ana loop
+    // Ana loop - Hızlı yanıt için kısa sleep
     while (g_running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     // Temizlik
