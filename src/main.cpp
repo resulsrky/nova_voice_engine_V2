@@ -39,8 +39,8 @@ void printUsage(const char* programName) {
     std::cout << std::endl;
     std::cout << "P2P Modu Parametreleri:" << std::endl;
     std::cout << "  REMOTE_IP               Karşı tarafın IP adresi" << std::endl;
-    std::cout << "  LOCAL_PORT              Bu makinenin dinleme portu" << std::endl;
-    std::cout << "  REMOTE_PORT             Karşı tarafın dinleme portu" << std::endl;
+    std::cout << "  LOCAL_PORT              Bu makinenin dinleme portu (gönderme portu da)" << std::endl;
+    std::cout << "  REMOTE_PORT             Karşı tarafın dinleme portu (hedef port)" << std::endl;
     std::cout << std::endl;
     std::cout << "Klasik Mod Seçenekleri:" << std::endl;
     std::cout << "  -s, --server [PORT]     Server modunda çalıştır (varsayılan port: " << Config::DEFAULT_PORT << ")" << std::endl;
@@ -51,8 +51,13 @@ void printUsage(const char* programName) {
     std::cout << "  -h, --help             Bu yardım mesajını göster" << std::endl;
     std::cout << std::endl;
     std::cout << "P2P Örnekleri (Eşzamanlı çalıştırın):" << std::endl;
-    std::cout << "  Makine 1: " << programName << " 192.168.1.200 8888 9999" << std::endl;
-    std::cout << "  Makine 2: " << programName << " 192.168.1.100 9999 8888" << std::endl;
+    std::cout << "  Senaryonuz:" << std::endl;
+    std::cout << "    Sen (192.168.1.100): " << programName << " 192.168.1.15 45000 11111" << std::endl;
+    std::cout << "    Karşı taraf (192.168.1.15): " << programName << " 192.168.1.100 11111 45000" << std::endl;
+    std::cout << std::endl;
+    std::cout << "  Genel örnek:" << std::endl;
+    std::cout << "    Makine 1: " << programName << " 192.168.1.200 8888 9999" << std::endl;
+    std::cout << "    Makine 2: " << programName << " 192.168.1.100 9999 8888" << std::endl;
     std::cout << std::endl;
     std::cout << "Klasik Örnekler:" << std::endl;
     std::cout << "  " << programName << " --server                # Server modu, port 8888" << std::endl;
@@ -281,8 +286,8 @@ int main(int argc, char* argv[]) {
     if (isPeerToPeer) {
         // P2P Modu: Hem dinle hem bağlan
         std::cout << "🔗 P2P Modu Başlatılıyor..." << std::endl;
-        std::cout << "   Dinleme: Port " << localPort << std::endl;
-        std::cout << "   Hedef: " << remoteIP << ":" << remotePort << std::endl;
+        std::cout << "   📥 Dinleme: Port " << localPort << " (gelen sesler)" << std::endl;
+        std::cout << "   📤 Gönderim: " << remoteIP << ":" << remotePort << " (giden sesler)" << std::endl;
         
         // Server olarak başlat (kendi portumuzda dinle)
         networkOk = g_udpManager->startServer(localPort);
