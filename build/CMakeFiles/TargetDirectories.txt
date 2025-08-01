@@ -1,0 +1,7 @@
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/CMakeFiles/nova_voice_engine.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/CMakeFiles/edit_cache.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/CMakeFiles/rebuild_cache.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/external/rnnoise/CMakeFiles/renamenoise.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/external/rnnoise/CMakeFiles/renamenoise_demo.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/external/rnnoise/CMakeFiles/edit_cache.dir
+/home/raulcto/CLionProjects/nova_voice_engine_V2/build/external/rnnoise/CMakeFiles/rebuild_cache.dir
