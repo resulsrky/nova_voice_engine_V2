@@ -283,6 +283,25 @@ std::string UDPManager::getAddressString(const struct sockaddr_in& addr) const {
     return std::string(ipStr) + ":" + std::to_string(ntohs(addr.sin_port));
 }
 
+bool UDPManager::setRemoteAddress(const std::string& ip, uint16_t port) {
+    if (!isRunning_) {
+        logError("UDP Manager çalışmıyor, remote address ayarlanamaz");
+        return false;
+    }
+    
+    // Remote address ayarla
+    remoteAddr_.sin_family = AF_INET;
+    remoteAddr_.sin_port = htons(port);
+    
+    if (inet_pton(AF_INET, ip.c_str(), &remoteAddr_.sin_addr) <= 0) {
+        logError("Geçersiz IP adresi: " + ip);
+        return false;
+    }
+    
+    std::cout << "[UDPManager] Remote address ayarlandı: " << ip << ":" << port << std::endl;
+    return true;
+}
+
 void UDPManager::logError(const std::string& message) const {
     std::cerr << "[UDPManager ERROR] " << message << std::endl;
 }

@@ -43,6 +43,9 @@ public:
     void setOnDataReceived(std::function<void(const uint8_t*, size_t)> callback);
     void setOnPacketReceived(std::function<void(std::shared_ptr<AudioPacket>)> callback);
     
+    // P2P için remote address ayarlama
+    bool setRemoteAddress(const std::string& ip, uint16_t port);
+    
 private:
     // Socket yönetimi
     int socketFd_;

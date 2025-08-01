@@ -28,19 +28,41 @@ void signalHandler(int signal) {
 
 // Yardım mesajı
 void printUsage(const char* programName) {
-    std::cout << "Kullanım: " << programName << " [SEÇENEKLER]" << std::endl;
+    std::cout << "Nova Voice Engine V2 - Sesli Konuşma Uygulaması" << std::endl;
+    std::cout << "==================================================" << std::endl;
     std::cout << std::endl;
-    std::cout << "Seçenekler:" << std::endl;
+    std::cout << "Kullanım 1 (P2P Modu - Önerilen):" << std::endl;
+    std::cout << "  " << programName << " <REMOTE_IP> <LOCAL_PORT> <REMOTE_PORT> [OPTIONS]" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Kullanım 2 (Klasik Server/Client):" << std::endl;
+    std::cout << "  " << programName << " [SEÇENEKLER]" << std::endl;
+    std::cout << std::endl;
+    std::cout << "P2P Modu Parametreleri:" << std::endl;
+    std::cout << "  REMOTE_IP               Karşı tarafın IP adresi" << std::endl;
+    std::cout << "  LOCAL_PORT              Bu makinenin dinleme portu" << std::endl;
+    std::cout << "  REMOTE_PORT             Karşı tarafın dinleme portu" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Klasik Mod Seçenekleri:" << std::endl;
     std::cout << "  -s, --server [PORT]     Server modunda çalıştır (varsayılan port: " << Config::DEFAULT_PORT << ")" << std::endl;
     std::cout << "  -c, --client IP [PORT]  Client modunda çalıştır" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Genel Seçenekler:" << std::endl;
     std::cout << "  -d, --device DEVICE     Ses cihazı adı (varsayılan: default)" << std::endl;
     std::cout << "  -h, --help             Bu yardım mesajını göster" << std::endl;
     std::cout << std::endl;
-    std::cout << "Örnekler:" << std::endl;
+    std::cout << "P2P Örnekleri (Eşzamanlı çalıştırın):" << std::endl;
+    std::cout << "  Makine 1: " << programName << " 192.168.1.200 8888 9999" << std::endl;
+    std::cout << "  Makine 2: " << programName << " 192.168.1.100 9999 8888" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Klasik Örnekler:" << std::endl;
     std::cout << "  " << programName << " --server                # Server modu, port 8888" << std::endl;
-    std::cout << "  " << programName << " --server 9999           # Server modu, port 9999" << std::endl;
-    std::cout << "  " << programName << " --client 192.168.1.100  # Client modu, port 8888" << std::endl;
-    std::cout << "  " << programName << " --client 192.168.1.100 9999  # Client modu, port 9999" << std::endl;
+    std::cout << "  " << programName << " --client 192.168.1.100  # Client modu" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Özellikler:" << std::endl;
+    std::cout << "  ✓ Lyra v2 Neural Codec (3.2-9.2 kbps)" << std::endl;
+    std::cout << "  ✓ RNNoise Gürültü Engelleyici" << std::endl;
+    std::cout << "  ✓ Otomatik Bitrate Adaptasyonu" << std::endl;
+    std::cout << "  ✓ Real-time Voice Processing" << std::endl;
 }
 
 // Sistem başlatma
@@ -159,51 +181,92 @@ int main(int argc, char* argv[]) {
     
     // Parametreleri parse et
     bool isServer = false;
-    std::string serverIP;
-    uint16_t port = Config::DEFAULT_PORT;
+    bool isPeerToPeer = false;
+    std::string remoteIP;
+    uint16_t localPort = Config::DEFAULT_PORT;
+    uint16_t remotePort = Config::DEFAULT_PORT;
     std::string audioDevice = "default";
     
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
+    // P2P modu kontrolü (ilk argüman IP adresi mi?)
+    if (argc >= 4 && std::string(argv[1]).find('.') != std::string::npos) {
+        // P2P Modu: ./program remote_ip local_port remote_port
+        isPeerToPeer = true;
+        remoteIP = argv[1];
         
-        if (arg == "-h" || arg == "--help") {
-            printUsage(argv[0]);
-            return 0;
-        } else if (arg == "-s" || arg == "--server") {
-            isServer = true;
-            if (i + 1 < argc && argv[i + 1][0] != '-') {
-                port = static_cast<uint16_t>(std::stoi(argv[++i]));
-            }
-        } else if (arg == "-c" || arg == "--client") {
-            if (i + 1 >= argc) {
-                std::cerr << "Hata: Client modu için IP adresi gerekli" << std::endl;
-                printUsage(argv[0]);
-                return 1;
-            }
-            isServer = false;
-            serverIP = argv[++i];
-            if (i + 1 < argc && argv[i + 1][0] != '-') {
-                port = static_cast<uint16_t>(std::stoi(argv[++i]));
-            }
-        } else if (arg == "-d" || arg == "--device") {
-            if (i + 1 >= argc) {
-                std::cerr << "Hata: Cihaz adı gerekli" << std::endl;
-                printUsage(argv[0]);
-                return 1;
-            }
-            audioDevice = argv[++i];
-        } else {
-            std::cerr << "Hata: Bilinmeyen parametre: " << arg << std::endl;
+        try {
+            localPort = static_cast<uint16_t>(std::stoi(argv[2]));
+            remotePort = static_cast<uint16_t>(std::stoi(argv[3]));
+        } catch (const std::exception& e) {
+            std::cerr << "Hata: Geçersiz port numarası" << std::endl;
             printUsage(argv[0]);
             return 1;
         }
-    }
-    
-    // Server veya client modu kontrolü
-    if (!isServer && serverIP.empty()) {
-        std::cerr << "Hata: Server (-s) veya Client (-c) modu seçmelisiniz" << std::endl;
-        printUsage(argv[0]);
-        return 1;
+        
+        // Kalan argümanları kontrol et (device vs.)
+        for (int i = 4; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg == "-d" || arg == "--device") {
+                if (i + 1 >= argc) {
+                    std::cerr << "Hata: Cihaz adı gerekli" << std::endl;
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                audioDevice = argv[++i];
+            } else if (arg == "-h" || arg == "--help") {
+                printUsage(argv[0]);
+                return 0;
+            } else {
+                std::cerr << "Hata: Bilinmeyen parametre: " << arg << std::endl;
+                printUsage(argv[0]);
+                return 1;
+            }
+        }
+    } else {
+        // Klasik Server/Client Modu
+        for (int i = 1; i < argc; ++i) {
+            std::string arg = argv[i];
+            
+            if (arg == "-h" || arg == "--help") {
+                printUsage(argv[0]);
+                return 0;
+            } else if (arg == "-s" || arg == "--server") {
+                isServer = true;
+                if (i + 1 < argc && argv[i + 1][0] != '-') {
+                    localPort = static_cast<uint16_t>(std::stoi(argv[++i]));
+                }
+            } else if (arg == "-c" || arg == "--client") {
+                if (i + 1 >= argc) {
+                    std::cerr << "Hata: Client modu için IP adresi gerekli" << std::endl;
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                isServer = false;
+                remoteIP = argv[++i];
+                if (i + 1 < argc && argv[i + 1][0] != '-') {
+                    remotePort = static_cast<uint16_t>(std::stoi(argv[++i]));
+                    localPort = remotePort; // Client modunda aynı port
+                }
+            } else if (arg == "-d" || arg == "--device") {
+                if (i + 1 >= argc) {
+                    std::cerr << "Hata: Cihaz adı gerekli" << std::endl;
+                    printUsage(argv[0]);
+                    return 1;
+                }
+                audioDevice = argv[++i];
+            } else {
+                std::cerr << "Hata: Bilinmeyen parametre: " << arg << std::endl;
+                printUsage(argv[0]);
+                return 1;
+            }
+        }
+        
+        // Klasik mod kontrolü
+        if (!isServer && remoteIP.empty()) {
+            std::cerr << "Hata: Server (-s) veya Client (-c) modu seçmelisiniz" << std::endl;
+            std::cerr << "Veya P2P modu için: " << argv[0] << " <IP> <LOCAL_PORT> <REMOTE_PORT>" << std::endl;
+            printUsage(argv[0]);
+            return 1;
+        }
     }
     
     // Sistemi başlat
@@ -214,12 +277,34 @@ int main(int argc, char* argv[]) {
     
     // Network bağlantısını başlat
     bool networkOk = false;
-    if (isServer) {
-        std::cout << "Server modu - Port: " << port << " dinleniyor..." << std::endl;
-        networkOk = g_udpManager->startServer(port);
+    
+    if (isPeerToPeer) {
+        // P2P Modu: Hem dinle hem bağlan
+        std::cout << "🔗 P2P Modu Başlatılıyor..." << std::endl;
+        std::cout << "   Dinleme: Port " << localPort << std::endl;
+        std::cout << "   Hedef: " << remoteIP << ":" << remotePort << std::endl;
+        
+        // Server olarak başlat (kendi portumuzda dinle)
+        networkOk = g_udpManager->startServer(localPort);
+        if (networkOk) {
+            // P2P için remote address'i ayarla
+            if (g_udpManager->setRemoteAddress(remoteIP, remotePort)) {
+                std::cout << "✓ UDP Server port " << localPort << " üzerinde hazır" << std::endl;
+                std::cout << "✓ " << remoteIP << ":" << remotePort << " hedefine paket göndermeye hazır" << std::endl;
+                std::cout << "💡 P2P Bağlantısı: Her iki taraf da konuşmaya başladığında otomatik eşleşecek" << std::endl;
+            } else {
+                std::cerr << "✗ Remote address ayarlanamadı" << std::endl;
+                networkOk = false;
+            }
+        }
+    } else if (isServer) {
+        // Klasik Server Modu
+        std::cout << "Server modu - Port: " << localPort << " dinleniyor..." << std::endl;
+        networkOk = g_udpManager->startServer(localPort);
     } else {
-        std::cout << "Client modu - " << serverIP << ":" << port << " adresine bağlanılıyor..." << std::endl;
-        networkOk = g_udpManager->startClient(serverIP, port);
+        // Klasik Client Modu  
+        std::cout << "Client modu - " << remoteIP << ":" << remotePort << " adresine bağlanılıyor..." << std::endl;
+        networkOk = g_udpManager->startClient(remoteIP, remotePort);
     }
     
     if (!networkOk) {
